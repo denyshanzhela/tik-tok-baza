@@ -23,6 +23,7 @@ def get_yesterday():
     return (today - datetime.timedelta(days=1)).isoformat()
 
 def get_ads_stats():
+        logger.info("🚀 Функция get_ads_stats запущена")
     url = 'https://business-api.tiktok.com/open_api/v1.3/report/integrated/get/'
     headers = {
         'Access-Token': ACCESS_TOKEN,
