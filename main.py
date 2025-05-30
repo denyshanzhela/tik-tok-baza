@@ -2,11 +2,16 @@ from flask import Flask, jsonify
 import requests
 import datetime
 import os
+import logging
 from google.cloud import bigquery
 
 app = Flask(__name__)
 
-# Конфигурация (лучше вынести в переменные окружения)
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Конфигурация
 ACCESS_TOKEN = os.getenv('ACCESS_TOKEN', 'ae207063979208834126b148731b75d90eb5482')
 ADVERTISER_ID = os.getenv('ADVERTISER_ID', '7499963290844545040')
 PROJECT_ID = os.getenv('PROJECT_ID', 'disco-bedrock-428721-f8')
@@ -23,58 +28,100 @@ def get_ads_stats():
         'Access-Token': ACCESS_TOKEN,
         'Content-Type': 'application/json'
     }
+    
+    yesterday = get_yesterday()
+    logger.info(f"🔄 Запрашиваю данные TikTok API за {yesterday}")
+    
     payload = {
         "advertiser_id": ADVERTISER_ID,
         "report_type": "BASIC",
         "data_level": "AUCTION_AD",
         "dimensions": ["ad_id"],
         "metrics": ["spend", "impressions", "clicks"],
-        "start_date": get_yesterday(),
-        "end_date": get_yesterday(),
+        "start_date": yesterday,
+        "end_date": yesterday,
         "page_size": 1000
     }
     
     try:
+        logger.info(f"📤 Отправляю запрос к TikTok API: {payload}")
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
         data = response.json()
+        logger.info(f"📥 Получен ответ от TikTok API")
         
-        if "data" in data and "list" in data["data"]:
-            return data["data"]["list"]
-        raise Exception(f"Unexpected response structure: {data}")
+        if "data" not in data or "list" not in data["data"]:
+            logger.error(f"❌ Неожиданная структура ответа: {data}")
+            raise ValueError("Неверная структура ответа от API")
+            
+        stats = data["data"]["list"]
+        logger.info(f"✅ Получено {len(stats)} записей")
+        
+        # Добавляем дату отчета
+        for row in stats:
+            row['report_date'] = yesterday
+            
+        return stats
+        
     except Exception as e:
-        raise Exception(f"Failed to get ads stats: {str(e)}")
+        logger.error(f"❌ Ошибка при получении данных: {str(e)}")
+        raise
 
 def upload_to_bigquery(rows):
+    if not rows:
+        logger.warning("⚠️ Нет данных для загрузки в BigQuery")
+        return False
+        
+    logger.info(f"📊 Начало загрузки {len(rows)} строк в BigQuery")
+    
     try:
         client = bigquery.Client()
         table_ref = f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
+        
+        logger.info(f"🔍 Проверяю таблицу {table_ref}")
+        table = client.get_table(table_ref)
+        logger.info(f"ℹ️ Схема таблицы: {table.schema}")
+        
         errors = client.insert_rows_json(table_ref, rows)
+        
         if errors:
-            raise Exception(f"BigQuery errors: {errors}")
+            logger.error(f"❌ Ошибки при загрузке: {errors}")
+            return False
+            
+        logger.info(f"🎉 Успешно загружено {len(rows)} строк")
         return True
+        
     except Exception as e:
-        raise Exception(f"BigQuery upload failed: {str(e)}")
+        logger.error(f"🔥 Критическая ошибка BigQuery: {str(e)}")
+        raise
 
 @app.route('/')
 def health_check():
-    return jsonify({"status": "healthy", "message": "Service is running"}), 200
+    logger.info("🏥 Проверка здоровья сервиса")
+    return jsonify({"status": "healthy"}), 200
 
 @app.route('/run', methods=['POST'])
 def run_etl():
     try:
+        logger.info("🚀 Запуск ETL-процесса")
+        
         stats = get_ads_stats()
-        upload_to_bigquery(stats)
-        return jsonify({
-            "status": "success",
-            "message": "Data processed successfully",
-            "rows_processed": len(stats)
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), debug=False)
+        if not stats:
+            logger.warning("⚠️ Нет данных для обработки")
+            return jsonify({"status": "success", "message": "No data to process"}), 200
+            
+        success = upload_to_bigquery(stats)
+        
+        if success:
+            logger.info("✨ ETL-процесс успешно завершен")
+            return jsonify({
+                "status": "success",
+                "message": "Data processed successfully",
+                "rows_processed": len(stats)
+            }), 200
+        else:
+            logger.error("💥 ETL-процесс завершен с ошибками")
+            return jsonify({
+                "status": "partial_success",
+                "message": "Data processed with some errors"
+            }), 
