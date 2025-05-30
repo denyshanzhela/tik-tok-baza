@@ -1,7 +1,10 @@
+from flask import Flask, jsonify
 import requests
 import json
 import datetime
 from google.cloud import bigquery
+
+app = Flask(__name__)
 
 ACCESS_TOKEN = 'ae207063979208834126b148731b75d90eb5482'
 ADVERTISER_ID = '7499963290844545040'
@@ -42,8 +45,16 @@ def upload_to_bigquery(rows):
     errors = client.insert_rows_json(table_ref, rows)
     if errors:
         raise Exception(f"BigQuery errors: {errors}")
-    print("Upload successful")
+    return True
 
-def main(request=None):
-    stats = get_ads_stats()
-    upload_to_bigquery(stats)
+@app.route('/')
+def run_etl():
+    try:
+        stats = get_ads_stats()
+        upload_to_bigquery(stats)
+        return jsonify({"status": "success", "message": "Data processed successfully"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
