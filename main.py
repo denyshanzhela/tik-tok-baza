@@ -43,30 +43,30 @@ def get_ads_stats():
         "page_size": 1000
     }
     
-    try:
-        logger.info(f"📤 Отправляю запрос к TikTok API: {payload}")
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
-        response.raise_for_status()
+   try:
+    logger.info(f"📤 Отправляю запрос к TikTok API: {payload}")
+    response = requests.post(url, headers=headers, json=payload, timeout=30)
+    response.raise_for_status()
     data = response.json()
-logger.info(f"📥 Получен ответ от TikTok API: {data}")
+    logger.info(f"📥 Получен ответ от TikTok API: {data}")
 
-        
-        if "data" not in data or "list" not in data["data"]:
-            logger.error(f"❌ Неожиданная структура ответа: {data}")
-            raise ValueError("Неверная структура ответа от API")
-            
-        stats = data["data"]["list"]
-        logger.info(f"✅ Получено {len(stats)} записей")
-        
-        # Добавляем дату отчета
-        for row in stats:
-            row['report_date'] = yesterday
-            
-        return stats
-        
-    except Exception as e:
-        logger.error(f"❌ Ошибка при получении данных: {str(e)}")
-        raise
+    if "data" not in data or "list" not in data["data"]:
+        logger.error(f"❌ Неожиданная структура ответа: {data}")
+        raise ValueError("Неверная структура ответа от API")
+
+    stats = data["data"]["list"]
+    logger.info(f"✅ Получено {len(stats)} записей")
+
+    # Добавляем дату отчета
+    for row in stats:
+        row['report_date'] = yesterday
+
+    return stats
+
+except Exception as e:
+    logger.error(f"❌ Ошибка при получении данных: {str(e)}")
+    raise
+
 
 def upload_to_bigquery(rows):
     if not rows:
