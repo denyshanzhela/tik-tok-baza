@@ -124,4 +124,14 @@ def run_etl():
             return jsonify({
                 "status": "partial_success",
                 "message": "Data processed with some errors"
-            }), 
+            }), 207
+            
+    except Exception as e:
+        logger.error(f"💀 Фатальная ошибка в ETL: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), debug=False)
