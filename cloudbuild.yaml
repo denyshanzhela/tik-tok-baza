@@ -1,0 +1,5 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/disco-bedrock-428721-f8/tiktok-cloudrun', '.']
+images:
+- 'gcr.io/disco-bedrock-428721-f8/tiktok-cloudrun'
