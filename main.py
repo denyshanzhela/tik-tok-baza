@@ -47,8 +47,9 @@ def get_ads_stats():
         logger.info(f"📤 Отправляю запрос к TikTok API: {payload}")
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
-        data = response.json()
-        logger.info(f"📥 Получен ответ от TikTok API")
+    data = response.json()
+logger.info(f"📥 Получен ответ от TikTok API: {data}")
+
         
         if "data" not in data or "list" not in data["data"]:
             logger.error(f"❌ Неожиданная структура ответа: {data}")
