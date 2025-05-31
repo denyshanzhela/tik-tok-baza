@@ -26,23 +26,23 @@ def get_ads_stats(date_str):
     url = 'https://business-api.tiktok.com/open_api/v1.3/report/integrated/get/'
 
     headers = {
-        'Access-Token': ACCESS_TOKEN,
-        'Content-Type': 'application/json'
+        'Access-Token': ACCESS_TOKEN
     }
 
-    payload = {
+    params = {
         "advertiser_id": ADVERTISER_ID,
         "report_type": "BASIC",
         "data_level": "AUCTION_AD",
-        "dimensions": ["ad_id"],
-        "metrics": ["spend", "impressions", "clicks"],
+        "dimensions": '["ad_id"]',
+        "metrics": '["spend", "impressions", "clicks"]',
         "start_date": date_str,
         "end_date": date_str,
         "page_size": 1000
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=30)  # ✅ POST и json
+        # 🔄 заменили на GET
+        response = requests.get(url, headers=headers, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
 
