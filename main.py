@@ -84,14 +84,16 @@ def upload_to_bigquery(rows):
         client = bigquery.Client()
         table_ref = f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
 
-        logger.info(f"📊 Загрузка в {table_ref}")
+        logger.info(f"📊 Начинаю загрузку в {table_ref}")
+        logger.info(f"📦 Примеры строк для загрузки:\n{rows[:5]}")  # <-- покажем первые строки
+
         errors = client.insert_rows_json(table_ref, rows)
 
         if errors:
             logger.error(f"❌ Ошибки при загрузке: {errors}")
             return False
 
-        logger.info(f"✅ Загружено {len(rows)} строк")
+        logger.info(f"✅ Успешно загружено {len(rows)} строк в таблицу {table_ref}")
         return True
 
     except Exception as e:
