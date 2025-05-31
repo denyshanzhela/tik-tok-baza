@@ -41,7 +41,7 @@ def get_ads_stats(date_str):
     }
 
     try:
-        # 🔄 заменили на GET
+        # 🔄 используем GET
         response = requests.get(url, headers=headers, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
@@ -68,7 +68,8 @@ def get_ads_stats(date_str):
                 'clicks': int(mets.get("clicks", 0)),
                 'date': date_str
             })
-logger.info(f"📦 Пример строки: {result[:3]}")
+
+        logger.info(f"📦 Пример строки: {result[:3]}")
         return result
 
     except Exception as e:
@@ -85,7 +86,7 @@ def upload_to_bigquery(rows):
         table_ref = f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
 
         logger.info(f"📊 Начинаю загрузку в {table_ref}")
-        logger.info(f"📦 Примеры строк для загрузки:\n{rows[:5]}")  # <-- покажем первые строки
+        logger.info(f"📦 Примеры строк для загрузки:\n{rows[:5]}")
 
         errors = client.insert_rows_json(table_ref, rows)
 
@@ -107,6 +108,7 @@ def health():
 @app.route('/run', methods=['POST'])
 def run_etl():
     date_str = get_yesterday()
+    logger.info(f"📆 Запущен ETL для {date_str}")
     stats = get_ads_stats(date_str)
 
     if not stats:
