@@ -68,7 +68,7 @@ def get_ads_stats(date_str):
                 'clicks': int(mets.get("clicks", 0)),
                 'date': date_str
             })
-
+logger.info(f"📦 Пример строки: {result[:3]}")
         return result
 
     except Exception as e:
